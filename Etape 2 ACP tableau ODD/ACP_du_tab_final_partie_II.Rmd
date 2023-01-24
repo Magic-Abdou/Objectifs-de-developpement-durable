@@ -1,0 +1,375 @@
+---
+title: "ACP sur les ODDs"
+author: '***NIANG & SAWADO***'
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **2ème PARTIE :** 
+
+##### Analyse en composantes principales du taux de pauvreté total par département et de 10 autres variables choisis dans les objectifs de développement durable (ODD).
+
+
+
+
+### **Introduction :**
+
+Les dernieres décennies ont vu un changement dans la définition et la compréhenion du progres social aves des avancés dans les domaines de l'économie et de la technologie. 
+
+Par conséquent, les indicateurs ( nos variables ici) ont aussi évolué. 
+
+Le taux de pauvreté est la proportion d’individus appartenant à des ménages dont le niveau de vie, c’est-à-dire le revenu disponible (après transferts, impôts et prestations sociales) par unité de consommation (UC) est inférieur au seuil de 60 % de la médiane du revenu disponible par UC de l’ensemble de la population. En 2017, ce seuil est de 1 041 euros par mois en France. 
+
+Il met en relief en particulier le bien-etre economique mais ignore les inégalités, la faible satisfaction sociale et la dégradation de l'environnement.
+
+C'est en cela que les autres indicateurs sont précieux pour estimer la gain en bien-etre humain, de justice sociale et de progrès écologique.
+
+Dans le cadre de notre étude nous choisirons 10 variables au-delà du taux de pauvreté total et nous utiliserons l'analyse en composantes principales pour rechercher leur corrélation avec le taux de pauvreté total.
+
+
+
+```{r }
+library(tidyverse)
+library(knitr)
+setwd("C:/Users/abdou/Documents/cours seminaire integration/projet/")
+getwd()
+
+data=read.csv('tableauFinal.csv',sep=",",header=T)
+kable(head(data))  #tableau trop long. un head suffira pour un apercu
+dim(data)    #tableau de 101 individus et 19 variables
+```
+### **1 . Etude statistique :**
+
+Nous devons choisir nos 11 variables en ayant en tete que les objectifs sont : Eradition de la pauvreté et Infrastuctures résilientes.
+
+Auparavant, sur les 101 départements retenus, les départements d'Outre-mer ( Guadeloupe, Martinique, La Réunion, Guyane, Mayotte) se caractérisent par une énorme quantité de données manquantes. Ce qui témoigne de la faiblesse générale du système de collecte de donnée dans ces zones en particulier à Mayotte ou les données sont inexistantes. Nous avons choisi de l'exclure de l'etude parce n'apporte aucune information.
+
+
+* *Remarque* : On peut d'ores et déja remarquer que la qualité de l’appareil statistique d’un département semble liée à son niveau de développement.
+
+
+
+Nous travaillerons donc avec 100 departements dont 4 d'Outre-mer. 
+
+Pour les données manquantes dans les départements d'Outre-mer, nous avons fait le choix de remplacer par la moyenne ( toutes les données étant quantitatives ).
+
+Ensuite dans notre choix de variables, nous avons privilégié le Taux de pauvreté total , chez les jeunes (<30 ans) et chez les seniors (60-74 ans) et >= 75 , l'esperance de vie des hommes/des femmes, la part de voitures criticair1 essence, nombre de population hlm, part de foyers fiscaux imposables, apl_medgen 65, revenu decl median.
+
+
+```{r echo = T}
+data_fin = select(data,-c(4,5,6,9,13,14,15,17))  # Selection des 11 colonnes
+
+```
+
+
+```{r }
+data_fin = data_fin[1:100,]   #selection de tous les départements sauf Mayotte.
+head(data_fin)    
+```
+
+```{r }
+for (i in 1:ncol(data_fin)) {
+  
+  data_fin[is.na(data_fin[,i]), i] = mean(data_fin[,i], na.rm =T)
+  
+  
+}
+
+```
+```{r }
+kable(summary(data_fin))
+```
+
+### *Remarques concernant le résumé :*
+    * Pour aller plus vite, nous appelerons par moment TPT pour le taux de pauvreté total.
+
+On peut déja remarquer que le taux de pauvreté moyen des seniors ( 60-74 et plus de 75) est en dessous de la moyenne du  TPT alors que le taux de pauvreté chez les jeunes ( mois de 30 ans) est tres élevé par rapport a la moyenne et quasiment le double de celui des seniors.
+
+L'espérance de vie moyen d'un homme est plus faible que celle d'une femme. 
+
+Le revenu fiscal médian déclaré par unité de consommation est 200650 euros environ. 
+
+
+La part moyenne de voitures criticair 1 ( moins polluantes) par département est de 54584.
+
+```{r }
+data_fin=as.data.frame(data_fin[,-1])
+```
+
+
+```{r }
+library(knitr)
+R = cor(data_fin)
+kable(R)
+
+```
+
+On remarque une forte corrélation entre le TPT et le taux de pauvreté dans les différentes catégories d'age choisis avec une forte corréltion chez les 60-74 ans.
+
+On a aussi une forte corrélation entre PDDT et nombre de personnes en logement social. 
+
+Entre d'autres termes les personnes qui habitent en logement social empruntent beaucoup les transports en commun.
+
+
+Les espérances de vie entre sexes sont très correlées. Plus l'espérance de vie des hommes augmentent plus celle des femmes augmente aussi.
+
+
+On peut remarquer dans une moindre mesure une correlation négative entre le revenu.fiscal.median.declaré.par.unité et le taux de pauvreté dans les differentes tranches d'age.
+
+En d'autres termes plus le revenu median augmente, moins il y'a de pauvreté.
+
+
+  **Remarque** Nous allons dans ce dresser un corrplot pour mieux s'en rendre compte 
+
+
+```{r }
+
+#library(zoom) 
+library(corrplot)
+
+corrplot(R, tl.cex=0.6)
+
+```
+
+
+#### 2. **Début de notre ACP :**
+
+```{r }
+
+library("FactoMineR")   #Importation de la library FactoMiner
+data.pca=PCA(data_fin, graph = FALSE)
+data.pca
+```
+#### **Valeurs propres :**
+
+```{r }
+library("factoextra")
+val_propres =get_eigenvalue(data.pca)
+kable(val_propres)
+```
+
+* eigen$value : valeurs propres ou Inertie 
+* percentage of variance : pourcentage d'inertie ou part d'inertie ou proportion de variance expliquée par chaque valeur propre
+* cumulative percentage of variance : Inertie cumulée
+
+Les trois premières composantes principales cumulent$\ \approx$ 82% de l'information du tableau de données .
+
+Mais dans le cadre de notre étude, nous choisirons deux axes par la règle du coude:
+
+  *En effet, compte tenu du nombre important de varibales, environ 70 % de l'information nous semble     un chiffre acceptable pour continuer notre étude*
+ 
+ **Eboulli des valeurs propres : ( règle du coude)**
+ 
+```{r }
+fviz_eig(data.pca, addlabels = TRUE, ylim = c(0, 50))
+
+```
+
+La représentation des variables diffère de celle des individus: les individus  sont représentées par leurs projections, mais les variables sont représentées par leurs corrélations.
+
+On peut mieux le voir grace ci-dessous tri en ordre décroissant : 
+
+```{r }
+#Coordonnées des variables
+
+kable(data.pca$var$coord[,1:2])
+```
+
+- Nous remarquons que la variable revenu.fiscal.median.declaré.par.unité (coor $\ \approx$ -0.9) est la plus correlée ( négativiment) avec l'axe 1.
+
+- L'esperance de vie chez les differents sexes dans une moindre mesure ( coor $\ \approx$ -0,6).
+
+- Les variables taux de pauvreté totale, moins de 30 ans, 60-74 ans et plus de 75 ans sont tres correlées avec l'axe 1.
+
+
+- Les variables nombre.de.personnes.en.logement.social	(0.8391960) , PDDT.tec	(0.7832763) X.part.des.vehicules.criticair.1.essence (0.7109027) sont très correlées avec l'axe 2.
+
+
+* Remarque : Si on s'intéresse a la correlation des variables avec le 3ème axe, nous vérions que elles sont toutes très peu correlées avec cet axe. C'est aussi une des raisons qui ont motivé, notre choix de 2 axes factoriels. (voir le ci-dessous)
+
+```{r }
+kable(sort(data.pca$var$coord[,3],decreasing = T)) # correlation avec l'axe 3
+```
+
+
+#### **Inertie totale :**
+
+On sait que $$Inertie(Totale) = \sum I(projetées)=\sum_{i=1}^{n} \lambda_i$$
+
+Nous allons sommer toutes les valeurs propres grace la fonction sum sur la colonne eigenvalue.
+
+
+```{r }
+sum(val_propres[,1])
+ 
+#apply(val_propres,1,sum)
+
+```
+ *On pouvait s'y attendre, nous sommes dans une ACP normée*
+
+#### **Cercle de corrélation :**
+
+```{r }
+fviz_pca_var(data.pca, col.var = "purple")
+```
+ 
+ Nous pouvons déja remarquer deux catégories se distinguent :
+ 
+ 
+- Du coté droit du graphe, les indicateurs de **l'objectif 1 : Eradication de la pauvreté**.
+L'indicateur 'accessiblité.potentielle.au.medecins.generalistes' de **l'objectif 11 : Villes et Communautés durables**, figure également dans cette partie, ce qui montre  le lien étroit entre cet accès et le niveau de pauvreté dans un departement, et donc l’importance de  la fracture médicale entre les départements ( certains pourvus de médecins géneralistes et d'autres présentant des déserts médicaux).
+
+Le revenu fiscal median par unité est la variable la plus correlée avec l'axe 1 (négative).
+ 
+Etonnement, l'indicateur nombre de personnes en logement social de l'objectif 11 n'apparait pas dans cette liste. On aurait pu s'attendre a un lien étroit entre le niveau de pauvreté et le nombre de personnes occupants les logements sociaux. Du reste, il entretient une corrélation très forte avec le 2eme axe factoriel comme on a vu plus haut.
+
+
+- Du coté gauche du graphe, nous avons un bloc constitué par la l'esperance de vie homme/femme , le revenu médian par unité de consommation, la part de déplacement en tec et la part de voiture criticair1(essence). On peut remarquer une forte corrélation entre l'esperance de vie et le nombre de voitures moins polluantes et dans une moindre mesure la part de deplacement en transport en commun.
+
+
+
+
+- Un deuxième enseignement ressort de l’analyse de cet axe. Comme attendu, il existe une corrélation négative entre les différents indicateurs de pauvreté, les indicateurs de revenu median par unité et d'esperance de vie (bien représentés sur l'axe 1 ). Cela signifie que l’amélioration de la situation pour le premier groupe ( indcateurs pauvreté) d’indicateurs dans un département va de pair avec l’amélioration pour le second groupe ( dont quelques indicateurs de l'objectif 9 Infrastructures résilientes et innovation) Autrement dit, lorsqu’on cherche à se rapprocher de l'objectif 1, on va aussi se rapprocher de facto de l'ODD 9.
+
+
+##### **Qualités de représentation des variables sur l'axe(1,2) par corrplot et lecture de données**
+```{r }
+library("corrplot")
+corrplot(data.pca$var$cos2, is.corr=FALSE)
+```
+Les indicateurs de pauvreté sont bien représentés sur l'axe 1 de meme que le revenu fiscal médian.
+
+Le nombre de personnes en logement social, le PDDT.tec et la part des vehicules criticair1 sont bien représentés sur l'axe 2 .
+
+Seule l'accessibilité potentielle au medecin generaliste a une faible qualité de representé dans notre plan (axe1,axe2).
+
+
+- **Qualités de représentation des variables sur l'axe(1,2) par lecture des données :**
+
+```{r }
+kable(data.pca$var$cos2[,1:2])
+```
+
+
+
+#### **Contribution à la création des axes :**
+
+```{r }
+kable(data.pca$var$contrib[,1:2])
+```
+
+
+Les indicateurs de pauvreté ainsi que le revenu median par unité participent le plus à la création de l'axe 1 alors que PDDT.tec, esperance de vie homme, la part des vehicules criticair.1 essence et le nombre de personnes en logement social participent plus à la création de l'axe 2.
+
+
+```{r }
+fviz_cos2(data.pca, choice ='var', axes = 1:2)
+```
+
+Il est immédiat que la variable 'Taux de pauvreté total' est la mieux représentée sur le plan factoriel (1,2)
+
+et la variable 'accesibilité ptentielle aux médecins généralistes' est la moins bien représentée sur le plan factoriel (1,2).
+
+
+### **Contributions des individus à la création des axes :**
+
+```{r }
+data.pca$ind$contrib[,1:2]   #contribution des individus a la création des deux axes
+
+```
+
+##### **Graphe des individus :**
+
+```{r }
+fviz_pca_ind (data.pca, col.ind = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Évite le chevauchement de texte
+             )
+
+```
+
+  #### **Création d'un cluster**
+  
+```{r }
+fviz_pca_ind(data.pca,
+             geom.ind = "text", # Montre les points seulement (mais pas le "text")
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, # Ellipses de concentration
+             legend.title = "Groups"
+             )
+```
+
+  
+Nous remarquons que la plupart des departements de France ont des comportement similaires en moyenne mais 6 departements se detachent : 2 departements d'Outre-mer ( ***La Guyane et la Guadeloupe***), 4 départements d'ile-de-France ( ***Hauts-de-Seine,Essonne,Seine-Saint-Denis, Seine-et-Marne***) et  la ***Haute-Savoie***.
+
+*Pour analyser leur comportement, nous allons faire un biplot :*
+
+```{r }
+fviz_pca_biplot(data.pca, repel = TRUE,
+                col.var = "#2E9FDF", # Couleur des variables
+                col.ind = "#696969"  # Couleur des individues
+                )
+
+```
+#### **Interprétation des axes :**
+
+
+Nous voyons ainsi à travers ce graphe, que par exemple que les individus ***Guyane*** et la ***Martinique ( 100 et 98 )*** sont très proches : Ca veut dire qu'ils ont des niveaux de pauvreté très proches en moyenne avec de fortes valeurs en ***Guyane***.
+
+Les départements a droite de l'axe 1 sont des départements qui ont de fortes valeurs pour tous les indicateurs de pauvreté.
+
+Le département 94 (***Hauts-de-Seine***) concentre beaucoup de personnes en logement HLM. Ce dont on pouvait s'attendre en raison du prix élevé du metre carré dans ces zones.
+
+Quelques départements d'***Ile-de-France*** (***Seine-Saint-Denis(95),Essonne(93),Val-de-Marne(96)***) prennent de fortes valeurs pour PDDT.tec. Donc la part de déplacement de domicile travail en transport en commun en ***Ile-de-France*** est très elevée en raison du forts taux d'alternatives de transport (RER, Metro, Train, bus, Tram).
+
+A l'opposé le département du ***Nord (59)*** est très peu desservi en Transport en commun d'ou de faibles valeurs en PDDT.tec. ***Le Vaucluse (86)*** aussi dans une moindre mesure.
+
+
+Le revenu fiscal médian par unité de consommation le plus élevé de France est celui de ***Seine-et-Marne (79)***.
+
+
+La part de véhicules criticair1 est très élevée dans plusieurs départements d'***Ile-de-France***. En partie due au mesures de circulations alternées pair/impair et les arétés municipaux d'interdiction de circulation dans certaines zones sans vignette criticair1.
+
+
+L'espérance de vie homme/femme est très élevée dans les ***Territoires de Belfort (92)*** et en ***Seine-et-Marne(79)***. Il est intrinsèquement lié au revenu median par unité puisque ces departements prennent de fortes valeurs sur cette variable.
+
+
+Nous pouvons dire que de maniere générale, l'axe 1 sépare :
+
+- d'un coté (droit) les departements les plus pauvres de France, peu equipées en transport en          commun, d'espérance de vie faible par sexe et de revenu median par unité faible
+
+- et de l'autre (coté gauche) les départements ou le revenu median est très élevé, bien desservis      avec une espérance de vie élevée et un revenu median élevé.
+
+
+
+Par rapport a l'axe 2, les corrélations sont moins forte sur cet axe (représente 27% de l'information).
+
+Nous remarquons aussi que la corrélation entre revenu median par unité et l'axe 1 < 0. Donc les departements à gauche du graphe ont tendance à avoir un revenu fiscal médian par habitant très élevé.
+  
+Inversement les départements à droite du graphe ont des revenus fiscal median par unité très faibles.
+
+
+
+#### **Conclusion :**
+
+
+Nous remarquons que les indicateurs de l'objectif 1 (Eradication pauvreté) sont très correlées avec l'axe 1.
+
+Ainsi les indicateurs de l'objectif 1 (pauvreté totale et par catégories + revenu médian qui est aussi dans objectif 10)  sont toutes correlées avec l'axe 1.
+
+Et les indicateurs de l'objectif 11 (Villes et communautés durables) dont le nombre de personnes en HLM, et de l'objectif 9 ( Infrastuctures et Innovation) dont le PDDT.tec et les voitures criticair1 sont très correlées avec l'axe 2.
+
+Nous pouvons en conclusion dire que ***l'axe 1 mesure le niveau de pauvreté par departement.***
+
+Alors que ***l'axe 2 mesure la qualité de la vie par departement.***
+
+
+
+
+

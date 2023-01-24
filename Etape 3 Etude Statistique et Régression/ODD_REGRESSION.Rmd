@@ -1,0 +1,301 @@
+---
+title: "ODD_Partie 3 - Régression "
+author: "NIANG"
+date: "`18 DÃ©cembre 2022`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE, include = TRUE, warning = FALSE,message = FALSE)
+```
+
+
+
+
+#### **Objectif**
+
+On veut expliquer le Taux de pauvreté total en fonction des variables choisies dans notre ACP. Il s'agira là d'une regression "multiple" avec une variable à expliquer ( Taux de pauvreté total) et des variables explicatives qu'on choisira dans nos 10 variables au fur et à mesure de notre étude.
+
+L’objectif est d’évaluer si chacune des deux variables influence le Taux de âuvreté total, et, si tel est le cas, de tenter de quantifier cet effet. 
+
+```{r}
+library(tidyverse)
+library(knitr)
+setwd("C:/Users/abdou/Documents/cours seminaire integration/projet _partie_II/projet")
+getwd()
+
+data=read.csv('tableauFinal.csv',sep=",",header=T)
+kable(head(data))  #tableau trop long. un head suffira pour un apercu
+dim(data)    #tableau de 101 individus et 19 variables
+```
+
+
+#### **Régression linéaire :**
+
+Nous allons employer une régression linéaire multiple  afin d’évaluer quelles variables ont un effet sur le taux de pauvreté total (c’est la variable expliquée ) indépendamment des autres variables explicatives.
+
+
+
+```{r}
+data_fin = select(data,-c(4,5,6,9,13,14,15,17))
+head(data_fin)
+```
+
+
+
+```{r}
+data_fin = data_fin[1:100,]   #selection de tous les départements sauf Mayotte.
+head(data_fin)    
+```
+
+
+
+```{r}
+for (i in 1:ncol(data_fin)) {
+  
+  data_fin[is.na(data_fin[,i]), i] = mean(data_fin[,i], na.rm =T)
+  
+  
+}
+```
+
+
+
+```{r}
+data_fin=as.data.frame(data_fin[,-1])
+head(data_fin)
+```
+
+#####  **Etude des corrélations linéaires entre les variables explicatives deux à deux**
+
+```{r}
+#install.packages('GGally')
+library(GGally)
+ggpairs(data_fin)
+
+```
+
+
+Le choix du seuil r de corrélation est choisi arbitrairement ( Compte tenu du nombre de variables nous faisons le choix de r > 0.6)
+
+Ici, nous pouvons voir qu’il existe plusieurs fortes corrélations linéaires (r > 0.6):
+
+    entre les différents taux de pauvretés pris deux à deux,
+    entre PDDT.tec et nombre.de.personnes.en.logement.social : r= 0.846
+    entre PDDT.tec et la part de voitures criticair1 : r = 0.622
+    entre nombre.de.personnes.en.logement.social et part de voitures criticair1 :  r =0.828
+    entre le revenu fiscal médian et l'espérance de vie Homme : r = 0.616
+    entre le revenu fiscal médian et le taux de pauvreté < 30 ans, taux de pauvreté plus de 75 ans : r < -0.6
+
+
+Je fais alors le choix de retirer la variable Taux de pauvreté des 60..74 ans car dans ce contexte les deux autres variables explicatives Taux de pauvreté < 30 ans et taux de pauvreté >= 75 ans suffiront à expliquer le taux de pauvreté total.
+
+Dans notre étude aussi nous n'inclurons pas les variables accessibilité potentielle à un médecin généraliste et espérance de vie des femmes
+
+à cause d'une corrélation faible.
+
+
+
+
+```{r}
+data_fin2 = data_fin%>% select(-accessiblité.potentielle.au.medecins.generalistes,-esperance.de.vie.des.femme,-Taux.de.pauvrete.60..74) 
+head(data_fin2)
+```
+
+
+```{r}
+library(car)
+scatterplotMatrix(data_fin2) 
+```
+
+
+Ici on s’intéresse aux graphiques de la première ligne, qui représentent la relation entre la variable expliquée Taux de pauvreté total en y, et chacune des variables explicatives, en x
+
+
+
+```{r}
+mod.rlm1 = lm(Taux.de.pauvrete.total~., data=data_fin2)
+summary(mod.rlm1)
+```
+
+On constate que pour toutes les variables( y compris l’Intercept ), les p-values sonts très inférieures à 5% sauf pour les variables *nombre.de.personnes.en.logement.social , Espérance de vie Homme,X.part.des.vehicules.criticair.1.essence* Donc par prudence on ne rejette pas alors l’hypothèse H0 d'indépendance.
+
+On devra se passer alors de ces variables dans l'explication du taux de pauvreté total.
+
+
+
+```{r}
+data_fin3 = data_fin%>% select(-X.part.des.vehicules.criticair.1.essence,-nombre.de.personnes.en.logement.social,-accessiblité.potentielle.au.medecins.generalistes,-esperance.de.vie.homme,-esperance.de.vie.des.femme,-Taux.de.pauvrete.60..74) 
+
+#Nouveau tabeau sans les variables omises
+
+```
+
+
+```{r}
+mod.rlm2 = lm(Taux.de.pauvrete.total~., data=data_fin3)
+summary(mod.rlm2)
+```
+
+
+Cette fois pour toutes les variables y  ( l'intercept compris ), les p-values sonts très inférieures à 5%. On peut alors rejetter l’hypothèse H0 d'indépendance
+
+De plus, le coefficient d’ajustement R2 est de 0.9444 , soit un score de 94,44% pour notre modèle ce qui est un très bon résultat.
+
+*Signe des coefficients :*
+
+On peut déja faire un commenataire sur le signe des coefficients.
+
+En effet dans un modèle linéaire, le signe du coefficient associé à une variable indique le sens de l'effet de cette variable sur la variable à expliquer ( ici le Taux de pauvreté total ) : 
+
+* Par exemple, ici les coefficients de Taux.de.pauvrete...30 , Taux.de.pauvrete....75, PDDT.tec sont positifs : Cela signifie que le Taux de pauvreté total a tendance à augmenter si le taux de pauvreté chez les moins de 30 ans et 75 ans augmente. De meme l'augmentation de la part de déplacement domicile travail en Transports En Commun  a tendance à augmenter le taux de pauvreté total.
+
+* De l'autre coté le coefficient du revenu.fiscal.median.declaré.par.unité   -5.277e-04 est négatif
+
+  Cela signifie que plus le revenu fiscal médian par unité augmente moins il y'a de pauvreté. 
+
+
+#### **4.4 Représentations graphiques**
+
+
+```{r}
+library(car)
+avPlots(mod.rlm2)
+```
+
+
+Ceci confirme nos premières conclusions.  Une relation forte entre le taux de pauvreté total est le taux de pauvreté chez les moins de 30 ans et les plus de 75 ans. Ceci n'est pas étonnant. La part de jeunes et de retraités dans les catégories pauvres sont importantes.
+
+Par ailleurs on peut aussi voir qu'il y'a une relation linéaire forte entre le Taux de pauvreté total et le PDDT.tec. Les ménages pauvres empruntent souvent les transports en commun, à defaut de moyens de transport personnels.
+
+On peut voir dans le ci-dessous que le taux de pauvreté total augmente de 0.02754 quand le PDDT.tec augmente d'une unité.
+
+
+
+```{r}
+mod_PDDT = lm(Taux.de.pauvrete.total~PDDT.tec  , data=data_fin3)
+summary(mod_PDDT) 
+```
+
+
+
+On peut aussi remarquer une droite de régression décroissante du Taux de pauvreté total en fonction du revenu fiscal médian par unité. Autrement dit plus le revenu médian par unité augmente, moins il y'a de pauvreté.
+
+Le lien de linéarité décroissant est significatif comme nous pouvons le voir dans le ci-dessous :
+
+```{r}
+
+mod_Revenu = lm(Taux.de.pauvrete.total~revenu.fiscal.median.declaré.par.unité , data=data_fin3)
+summary(mod_Revenu)
+
+
+ggplot(data_fin3, aes(x=revenu.fiscal.median.declaré.par.unité,y=Taux.de.pauvrete.total))+
+  geom_point(size=2)+
+    geom_smooth(method="lm")+
+    scale_y_continuous(limits=c(0,50))
+```
+
+
+Nous voyons que le Taux de pauvreté total diminue de 0.0011893 unité lorsque le revenu fiscal médian augmente d'une unité  ( chaque unité = 5000 euros).
+
+*Remarque* Cette diminution du Taux de pauvreté total en fonction du revenu fiscal médian n'est pas significative. Dans une logique de lutte contre la                    pauvreté, il faudrait alors combiner plusieurs autres facteurs.
+
+
+
+
+#### **Essayons d'ajouter des variables à notre tableau**
+
+La part des actifs stables, la moyenne distance en km des actifs et la part des foyers fiscaux imposés nous semblent intéressant quant à l'explication du taux de pauvreté total.
+
+
+```{r}
+data_fin4 = select(data,-c(4,5,6,14,15))
+head(data_fin4)
+```
+
+
+```{r}
+
+#data[13]
+
+#head(data_fin4)
+data_fin4 = data_fin4[1:100,] 
+```
+
+```{r}
+for (i in 1:ncol(data_fin4)) {
+  
+  data_fin4[is.na(data_fin4[,i]), i] = mean(data_fin4[,i], na.rm =T)
+  
+  
+}
+```
+
+```{r}
+data_fin4=as.data.frame(data_fin4[,-1])
+head(data_fin4)
+```
+
+
+
+
+```{r}
+mod.rlm3 = lm(Taux.de.pauvrete.total~. , data=data_fin4)
+summary(mod.rlm3)
+```
+
+Avce des p-values aussi petites pour les variables qu'on a rajouté, il serait difficile de rejeter l'hypothese d'independance meme en fixant un seuil de 5%.
+
+On aurait pu s'attendre à un lien entre le nombre de foyers fiscaux imposés et le taux de pauvreté total mais en l'etat de chose il serait difficile de faire une telle conclusion.
+
+
+*Rapport Moyen distance km actif et taux de pauvreté total* :
+
+```{r}
+
+mod.rlm4 = lm(Taux.de.pauvrete.total~data_fin4$Moy_dist_km_actif , data=data_fin4)
+summary(mod.rlm4)
+```
+
+
+Le coefficient entre taux de pauvreté total et Moyenne distance km actif est négatif -0.4064. Donc plus la distance moyenne domicile travail des actifs augmente moins il y'a de pauvreté totale.
+
+
+La durée moyenne des navettes observées dans un département comme l'Ile-de-France est sensiblement plus longue que dans un département d'Outre-mer par exemple (~22 minutes dans un département d'IDF contre 8 minutes en Guyane).
+
+
+
+```{r}
+ggplot(data_fin4, aes(x=data_fin4$Moy_dist_km_actif,y=Taux.de.pauvrete.total))+
+  geom_point(size=2)+
+    geom_smooth(method="lm")+
+    scale_y_continuous(limits=c(0,50))
+```
+
+
+La seule chose que nous avons trouvé comme explication de ce phénomène c'est que si les actifs parcourent plus de distances en moyenne, c'est qu'il y'en a de plus en plus qui sont prets à aller loin pour trouver du travail augmentant de facto la distance parcourue en moyenne et in fine une diminution du taux de pauvreté total.
+
+*L'explication semble un peu légère mais nous avons pas pu expliquer mieux ce phénomène à partir de nos résultats*
+
+
+
+#### **Méthode permettant de régresser l'indice de pauvreté par les autres variables**
+
+
+Régression de Poisson :
+
+La régression de Poisson est un modèle linéaire généralisé où la variable expliquée suit une distribution de Poisson: $y ∼ Pois(λ)$
+
+Puisque λ doit être un nombre positif, nous utiliserons la fonction de logarithme comme lien avec le prédicteur
+linéaire.
+
+
+
+```{r}
+mod_sp = glm(Taux.de.pauvrete.total ~. , family = poisson(link = "log"), data=data_fin4)
+summary(mod_sp)
+```
+
+Ce modèle n'est pas adapté à notre jeu de données comme on peut le voir. En effet à part le taux de pauvreté des 60..74 ans aucune des variables explicatives n'a une p-value en dessous de 5%. Nous ne pouvons donc rejeter l'hypothèse d'indépendance H0.

@@ -1,0 +1,154 @@
+---
+title: "Untitled"
+author: "NIANG"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+
+# Commencons par charger le tableau de données brutes
+
+
+```{r}
+
+setwd("C:/Users/abdou/Documents/cours seminaire integration/ODD_CSV_V2/")
+getwd()
+
+data=read.table('ODD_DEP.csv',sep=";",header=TRUE)
+
+```
+
+
+# Début du nettoyage
+
+## Nous avons créé un tableau de données appelé dataINSEE qui regroupe les 101 départements ainsi que l'ensemble des codes des variables
+## Nous avons ensuite renommé les lignes en nom de departements sans repetition
+### Cat = categorie
+###les deux dernieres lignes de codes servant a selectionner les sous-champs de notre tableau de données     et enfin l'affichage pour le departement de la Meuse a titre d'illustration.
+
+```{r}
+dataINSEE = data.frame(matrix(nrow=101,ncol=849))
+row.names(dataINSEE) = unique(data$libgeo)
+cat<-data$sous_champ
+cat[data$libgeo=="Meuse"]
+colnames(dataINSEE) = cat[data$libgeo=="Meuse"]
+
+nbr_rep_row = rep(0,time=101)
+
+for(k in 0:101){
+  nbr_rep_row[k] = as.character(unique(data$libgeo)[k])
+}
+
+nbr_rep_col=rep(0,time=849)
+      
+for(i in 0:101){
+  nbr_rep_col = data$libgeo==nbr_rep_row[i]
+  for(j in 0:848){
+    if(colnames(dataINSEE)[j+1]==""){
+      colnames(dataINSEE)[j+1] = data$variable[data$libgeo=="Meuse"][j+1]
+    } else{
+      colnames(dataINSEE)[j+1] = paste(data$variable[data$libgeo=="Meuse"][j+1]
+                                    ,data$sous_champ[data$libgeo=="Meuse"][j+1],sep=" : ")
+    }
+    
+    dataINSEE[i,] = data$A2018[nbr_rep_col]
+  }
+  
+}
+```
+
+
+## Choix des variables a partir de
+
+
+```{r}
+library(tidyverse)
+
+
+Tab_fin = select(dataINSEE, `taux_pvt : total`,`taux_pvt : moins30`,`taux_pvt : 30_39`,
+`taux_pvt : 40_49`,`taux_pvt : 50_59`,`taux_pvt : 60_74`,
+`taux_pvt : 75plus`,`part_actifs_stables : `,`part_depl_dom_trav : tec`, `esper_vie : homme`,
+`parc_vp : critair1_essence`,`moy_dist_km : act`,`moy_dist_min_hp : act`,`ges : ch4`,
+`nb_pop_hlm : `,`part_foy_fisc_impos : `,`apl_medgen_moins65 : `,`revenu_decl_median : `,
+`esper_vie : femme` )
+```
+
+## Renommer les variables
+
+```{r}
+
+names(Tab_fin)[names(Tab_fin) == "taux_pvt : total"] =  "Taux de pauvrete total"
+names(Tab_fin)[names(Tab_fin) == "taux_pvt : moins30"] = "Taux de pauvrete > 30 "
+names(Tab_fin)[names(Tab_fin) == "taux_pvt : 30_39"] = "Taux de pauvrete 30 - 39"
+names(Tab_fin)[names(Tab_fin) == "taux_pvt : 40_49"] = "Taux de pauvrete 40 - 49"
+names(Tab_fin)[names(Tab_fin) == "taux_pvt : 50_59"] = "Taux de pauvrete 50 -59"
+names(Tab_fin)[names(Tab_fin) == "taux_pvt : 60_74"] = "Taux de pauvrete 60 -74"
+names(Tab_fin)[names(Tab_fin) == "taux_pvt : 75plus"] = "Taux de pauvrete => 75"
+names(Tab_fin)[names(Tab_fin) == "part_actifs_stables :"] = "Part des actifs stables :"
+names(Tab_fin)[names(Tab_fin) == "part_depl_dom_trav : tec"] =  "PDDT tec"
+names(Tab_fin)[names(Tab_fin) == "esper_vie : homme"] = "esperance de vie homme"
+names(Tab_fin)[names(Tab_fin) == "parc_vp : critair1_essence"] = " part des vehicules criticair 1 essence"
+names(Tab_fin)[names(Tab_fin) == "moy_dist_km : act"] = "Moy_dist_km_actif"
+names(Tab_fin)[names(Tab_fin) == "moy_dist_min_hp : act"] = "Moy_dist_min_actif"
+names(Tab_fin)[names(Tab_fin) == "ges : ch4"] = " Emission en equivalent CO2 pour le methane"
+names(Tab_fin)[names(Tab_fin) == "nb_pop_hlm : "] = "nombre de personnes en logement social"
+
+names(Tab_fin)[names(Tab_fin) == "part_foy_fisc_impos : "] = "part des foyers fiscaux imposés"
+names(Tab_fin)[names(Tab_fin) == "apl_medgen_moins65 : "] = "accessiblité potentielle au medecins generalistes"
+names(Tab_fin)[names(Tab_fin) == "revenu_decl_median : "] = "revenu fiscal median declaré par unité"
+names(Tab_fin)[names(Tab_fin) == "esper_vie : femme"] = "esperance de vie des femme"
+colnames(Tab_fin)
+
+```
+
+## Descriptif des variables
+
+
+**Taux de pauvreté total :** Le taux de pauvreté est la proportion d’individus appartenant à des ménages dont le niveau de vie, c’est-à-dire le revenu disponible (après transferts, impôts et prestations sociales) par unité de consommation (UC) est inférieur au seuil de 60 % de la médiane du revenu disponible par UC de l’ensemble de la population. En 2017, ce seuil est de 1 041 euros par mois en France
+
+**Taux de pauvreté > 30 :** Le taux de pauvreté pour la tranche d’âge de mois de 30 ans
+
+**Taux de pauvreté 30 - 39 :** Le taux de pauvreté pour la tranche d’âge entre 30 ans et 39 ans
+
+**Taux de pauvreté 40 - 49 :** Le taux de pauvreté pour la tranche d’âge entre 40 ans et 49 ans
+
+**Taux de pauvreté 50 -59 :** Le taux de pauvreté pour la tranche d’âge entre 50 ans et 59 ans
+
+**Taux de pauvreté 60 -74 :** Le taux de pauvreté pour la tranche d’âge entre 60 ans 74 ans
+
+**Taux de pauvreté =>75 :** Le taux de pauvreté pour la tranche d’âge de 75 ans et plus
+
+**Part des actifs stables :**  Part des actifs stables parmi les actifs ayant un emploi
+
+**PDDT_Transport en commun :** parts modales des déplacements domicile-travail en
+transports en commun en %
+
+**nb_pop_hlm:** Nombres de personnes en logement social
+
+**revenu_decl_median :** revenu fiscal median declaré par unité de consommationn : 
+Egalement appelé "niveau de vie", c'est le revenu disponible par "équivalent adulte". Il est calculé en rapportant le revenu disponible du ménage au nombre d'unités de consommation qui le composent.
+
+**parc_vp : critair1_essence:** part des vehicules critair1 essence(Voitures essence à partir de janvier 2011) dans l'ensemble du parc automobile
+
+**ges : ch4** Emission en equivalent CO2 pour le methane
+
+**Moy_dist_km_actif :** Distance moyenne des navettes domicile-Travail pour les actifs occupés, (en km)
+
+**Moy_dist_min_actif :** Durée moyenne des navettes domicile-Travail pour les actifs occupés (en minute)
+
+**apl_medgen_moins65 :** mesure l’adéquation spatiale entre l’offre et la demande de soins de premier recours dans une localité
+
+**Esperance de vie des hommes :** Espérance de vie à la naissance pour les Hommes
+
+**Esperance de vie des femmes :** Espérance de vie à la naissance pour les Hommes
+
+**part_foy_fisc_impos**  nombre de foyers soumis a l'impot
+
+
+```{r}
+write.csv(Tab_fin,"C:/Users/abdou/Documents/cours seminaire integration/tableauFinal.csv", row.names = FALSE)
+
+```
+
+
